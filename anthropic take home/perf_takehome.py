@@ -105,14 +105,16 @@ class KernelBuilder:
             "forest_values_p",
             "inp_indices_p",
             "inp_values_p",
+            "TRASH",
         ]
         for v in init_vars:
             self.alloc_scratch(v, 1)
             
         # Allocate scratch for vars
+        range_addr = self.alloc_scratch("range_addr", len(init_vars))
         for i, v in enumerate(init_vars):
-            self.add("load", ("const", tmp1, i))
-            self.add("load", ("load", self.scratch[v], tmp1))
+            self.add("load", ("const", range_addr + i, i))
+        self.add("load", ("vload", self.scratch["rounds"], range_addr))
 
         zero_const = self.scratch_const(0)
         one_const = self.scratch_const(1)
