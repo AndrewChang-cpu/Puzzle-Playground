@@ -35,9 +35,9 @@ def do_kernel_test(forest_height: int, rounds: int, batch_size: int):
     mem = build_mem_image(forest, inp)
 
     kb = kernel_builder(forest.height, len(forest.values), len(inp.indices), rounds)
-    print("CHECKPOINT")
-    for instr in kb.instrs[:10]:
-        print(instr)
+    # print("CHECKPOINT")
+    # for instr in kb.instrs[:10]:
+    #     print(instr)
 
     machine = Machine(mem, kb.instrs, kb.debug_info(), n_cores=N_CORES)
     machine.enable_pause = False

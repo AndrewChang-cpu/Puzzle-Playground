@@ -115,6 +115,11 @@ class KernelBuilder:
         for i, v in enumerate(init_vars):
             self.add("load", ("const", range_addr + i, i))
         self.add("load", ("vload", self.scratch["rounds"], range_addr))
+        
+        # Reference Implementation for above 4 lines
+        # for i, v in enumerate(init_vars):
+        #     self.add("load", ("const", tmp1, i))
+        #     self.add("load", ("load", self.scratch[v], tmp1))
 
         zero_const = self.scratch_const(0)
         one_const = self.scratch_const(1)
@@ -139,12 +144,13 @@ class KernelBuilder:
         for round in range(rounds):
             for i in range(batch_size):
                 i_const = self.scratch_const(i) # address of memory that stores i
+                body.append(("debug", ("COMMENT", f"Round: {round}, Index: {i}")))
                 
                 # Add i to inp_index
                 # idx = mem[inp_indices_p + i]
-                body.append(("alu", ("+", tmp_addr, self.scratch["inp_indices_p"], i_const)))
-                body.append(("load", ("load", tmp_idx, tmp_addr)))
-                body.append(("debug", ("compare", tmp_idx, (round, i, "idx"))))
+                # body.append(("alu", ("+", tmp_addr, self.scratch["inp_indices_p"], i_const)))
+                # body.append(("load", ("load", tmp_idx, tmp_addr)))
+                # body.append(("debug", ("compare", tmp_idx, (round, i, "idx"))))
                 
                 # Add i to inp_value
                 # val = mem[inp_values_p + i]
@@ -207,7 +213,7 @@ def do_kernel_test(
 
     kb = KernelBuilder()
     kb.build_kernel(forest.height, len(forest.values), len(inp.indices), rounds)
-    print("kb.instrs", kb.instrs[:50])
+    print("kb.instrs", kb.instrs[:7])
 
     value_trace = {}
     machine = Machine(
@@ -219,12 +225,14 @@ def do_kernel_test(
         trace=trace,
     )
     machine.prints = prints
+    # print("HELLO", len(list(reference_kernel2(mem, value_trace))))
     for i, ref_mem in enumerate(reference_kernel2(mem, value_trace)):
         machine.run()
         inp_values_p = ref_mem[6]
         if prints:
             print(machine.mem[inp_values_p : inp_values_p + len(inp.values)])
             print(ref_mem[inp_values_p : inp_values_p + len(inp.values)])
+            # print(f'---------------- INP VALUES {i}')
         assert (
             machine.mem[inp_values_p : inp_values_p + len(inp.values)]
             == ref_mem[inp_values_p : inp_values_p + len(inp.values)]
@@ -233,6 +241,7 @@ def do_kernel_test(
         if prints:
             print(machine.mem[inp_indices_p : inp_indices_p + len(inp.indices)])
             print(ref_mem[inp_indices_p : inp_indices_p + len(inp.indices)])
+            # print(f'---------------- INP INDICES {i}')
         # Updating these in memory isn't required, but you can enable this check for debugging
         # assert machine.mem[inp_indices_p:inp_indices_p+len(inp.indices)] == ref_mem[inp_indices_p:inp_indices_p+len(inp.indices)]
 
@@ -260,6 +269,10 @@ class Tests(unittest.TestCase):
     def test_kernel_trace(self):
         # Full-scale example for performance testing
         do_kernel_test(10, 16, 256, trace=True, prints=False)
+
+    def test_print_kernel_trace(self):
+        # Full-scale example for performance testing
+        do_kernel_test(10, 16, 256, trace=True, prints=True)
 
     # Passing this test is not required for submission, see submission_tests.py for the actual correctness test
     # You can uncomment this if you think it might help you debug

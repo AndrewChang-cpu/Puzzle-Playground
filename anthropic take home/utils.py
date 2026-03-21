@@ -14,10 +14,11 @@ def debug(func):
         return result
     return wrapper
 
+custom_debug_enabled = False
 def debug_methods(cls):
-    # return
-    for name, attr in vars(cls).items():
-        # Check if the attribute is a function (method)
-        if callable(attr):
-            setattr(cls, name, debug(attr))
+    if custom_debug_enabled:
+        for name, attr in vars(cls).items():
+            # Check if the attribute is a function (method)
+            if callable(attr):
+                setattr(cls, name, debug(attr))
     return cls

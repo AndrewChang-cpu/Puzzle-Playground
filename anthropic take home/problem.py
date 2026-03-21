@@ -62,6 +62,13 @@ N_CORES = 1
 SCRATCH_SIZE = 1536
 BASE_ADDR_TID = 100000
 
+CNT = 0
+# TODO: what goes on before 200?
+START_PRINT_CNT = 273
+STOP_PRINT_CNT = 330
+def range_debug(*args):
+    if START_PRINT_CNT <= CNT <= STOP_PRINT_CNT:
+        print(*args)
 
 class Machine:
     """
@@ -355,6 +362,8 @@ class Machine:
         """
         Execute all the slots in each engine for a single instruction bundle
         """
+        global CNT
+        
         ENGINE_FNS = {
             "alu": self.alu,
             "valu": self.valu,
@@ -383,10 +392,18 @@ class Machine:
                         )
                 continue
             assert len(slots) <= SLOT_LIMITS[name]
+            range_debug('slots', slots)
+            curr_mem = {addr: self.mem[addr] for slot in slots for addr in slot if isinstance(addr, int) and addr < len(self.mem)}
+            range_debug('curr_mem', curr_mem)
+            curr_scratch = {addr: core.scratch[addr] for slot in slots for addr in slot if isinstance(addr, int) and addr < len(core.scratch)}
+            range_debug('curr_scratch', curr_scratch)
             for i, slot in enumerate(slots):
                 if self.trace is not None:
                     self.trace_slot(core, slot, name, i)
                 ENGINE_FNS[name](core, *slot)
+                
+        range_debug(f'#{CNT} STEP INSTRUCTION: {instr}   scratch_write: {self.scratch_write}   mem_write: {self.mem_write}')
+        
         for addr, val in self.scratch_write.items():
             core.scratch[addr] = val
         for addr, val in self.mem_write.items():
@@ -397,6 +414,9 @@ class Machine:
 
         del self.scratch_write
         del self.mem_write
+        
+        CNT += 1
+        range_debug('---------------------------')
 
     def __del__(self):
         if self.trace is not None:
@@ -416,7 +436,8 @@ class Tree:
     @staticmethod
     def generate(height: int):
         n_nodes = 2 ** (height + 1) - 1
-        values = [random.randint(0, 2**30 - 1) for _ in range(n_nodes)]
+        # values = [random.randint(0, 2**30 - 1) for _ in range(n_nodes)]
+        values = [100 for _ in range(n_nodes)]
         return Tree(height, values)
 
 
@@ -434,7 +455,8 @@ class Input:
     @staticmethod
     def generate(forest: Tree, batch_size: int, rounds: int):
         indices = [0 for _ in range(batch_size)]
-        values = [random.randint(0, 2**30 - 1) for _ in range(batch_size)]
+        # values = [random.randint(0, 2**30 - 1) for _ in range(batch_size)]
+        values = [50 for _ in range(batch_size)]
         return Input(indices, values, rounds)
 
 
@@ -533,7 +555,7 @@ def myhash_traced(a: int, trace: dict[Any, int], round: int, batch_i: int) -> in
 
     return a
 
-@debug
+# @debug
 def reference_kernel2(mem: list[int], trace: dict[Any, int] = {}):
     """
     Reference implementation of the kernel on a flat memory.
